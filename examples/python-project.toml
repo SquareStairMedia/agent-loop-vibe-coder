@@ -1,0 +1,31 @@
+[loop]
+name = "add-slug-helper"
+project_dir = "../sample-project"
+task = """
+Add a function named slugify(text: str) -> str to src/text_tools.py.
+It must lowercase text, replace runs of non-alphanumeric characters with one hyphen,
+and remove leading or trailing hyphens. Add focused tests.
+"""
+acceptance_criteria = [
+  "The public slugify function exists with the requested signature.",
+  "The implementation handles spaces, punctuation, repeated separators, and mixed case.",
+  "Existing behavior remains intact.",
+  "All configured verification commands pass.",
+]
+max_iterations = 4
+max_elapsed_seconds = 1200
+agent_timeout_seconds = 600
+
+# Replace this with your coding agent's non-interactive command.
+# The harness substitutes {prompt_file}, {run_dir}, and {iteration}.
+agent_command = "your-agent-command --prompt-file \"{prompt_file}\""
+
+[[verify]]
+name = "tests"
+command = "python -m pytest -q"
+timeout_seconds = 180
+
+[[verify]]
+name = "compile"
+command = "python -m compileall -q src"
+timeout_seconds = 60
