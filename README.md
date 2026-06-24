@@ -89,11 +89,15 @@ Confirm the installation:
 agent-loop --help
 ```
 
-You may now run `agent-loop` from any folder on your computer.
+Congratulations! You have successfully installed this agent loop onto your machine, it will run from any of your local project folders. Here's how....
 
 ### 6. Start the guided setup
 
-Run:
+Now you can start using the loop in one of your projects.
+
+Close the terminal that was used to install this agent-loop. Open a new terminal (I use PowerShell) and point it via 'cd' to the folder of a coding project you want the loop to work on. 
+
+Then run:
 
 ```powershell
 agent-loop start
