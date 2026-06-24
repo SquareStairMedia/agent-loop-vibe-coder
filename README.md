@@ -1,162 +1,176 @@
-# Verifiable Agent Loop
+# Agent Loop for Vibe Coders
 
-A practical coding-agent loop you can use immediately, with deterministic verification, bounded retries, complete audit trails, and guidance for designing effective loops of your own.
+A guided coding-agent loop that lets Claude Code or Codex work on one project, checks the result, and retries only when the checks fail.
 
-## The important clarification
+## What this tool is
 
-A loop is not effective on its own. It becomes effective only when its goal, tools, evidence, acceptance criteria, limits, and human controls match the task.
+This repository does **not** contain an AI model.
 
-This repository provides a strong coding-loop implementation because software work often has objective evidence: tests, builds, linters, type checks, and observable file changes. The loop structure is reusable. The verification strategy is not universal and must change with the use case.
+It connects four things:
 
-## What it does
+- **Claude Code or Codex** does the coding work.
+- **This agent loop** supervises the attempts.
+- **Your coding project** is the folder the AI may change.
+- **Tests, builds, linting, or type checks** provide evidence that the work is complete.
 
-The harness:
+Think of the AI coding agent as the worker and this loop as the supervisor.
 
-1. reads a coding task and explicit acceptance criteria
-2. gives the task and prior failures to a configured coding agent
-3. lets the agent inspect and modify the target project
-4. runs deterministic verification commands itself
-5. repeats only when verification fails
-6. stops when verification passes or a configured boundary is reached
-7. stores every prompt, command result, failure, and outcome in an audit directory
+## Start here
 
-The agent cannot mark its own work complete. Success is determined by evidence produced outside the model.
+Follow these steps in order. No prior experience with agent loops is required.
 
-## Why this is different from a loop prompt
+### 1. Confirm Python 3.11 or newer
 
-A prompt that says “review your work and keep improving it” is still asking the same model to judge itself. This project places the loop around the agent:
+Open PowerShell and run:
 
-```text
-objective -> agent action -> external evidence -> verification -> adapt or stop
+```powershell
+python --version
 ```
 
-The harness controls retries, time limits, verification, and records. The coding agent is one replaceable component inside that system.
+You should see Python 3.11 or newer. On Windows, this also works when multiple Python versions are installed:
 
-## Requirements
+```powershell
+py -3.14 --version
+```
 
-- Python 3.11 or newer
-- a project with commands that can verify correctness
-- a coding agent that can be invoked non-interactively from a shell command
+### 2. Confirm that you have an AI coding agent
 
-The harness is provider-agnostic. Your agent command can call a local CLI, an internal wrapper, or a script that talks to an API.
+You need **one** of these installed and signed in.
 
-## Install
+For Claude Code:
 
-```bash
+```powershell
+claude --version
+```
+
+For Codex CLI:
+
+```powershell
+codex --version
+```
+
+If neither command works, install and sign in to Claude Code or Codex before continuing.
+
+### 3. Choose a safe test project
+
+Choose a **separate coding project** that you are willing to let an AI agent modify.
+
+The project should:
+
+- already be a Git repository
+- have tests, a build command, linting, type checks, or Python files that can be compiled
+- not contain irreplaceable uncommitted work
+
+Do not use this agent-loop repository itself as the test project.
+
+### 4. Download this repository
+
+Download the ZIP from GitHub and extract it, or clone the repository.
+
+Open PowerShell inside the extracted agent-loop folder.
+
+### 5. Install the agent-loop command
+
+Run:
+
+```powershell
 python -m pip install -e .
 ```
 
-## Configure a loop
+If you installed a newer Python alongside an older one, use that version explicitly. Example:
 
-Copy `examples/python-project.toml` and change four things:
-
-- `project_dir`: the codebase the agent may modify
-- `task`: the requested change
-- `acceptance_criteria`: the observable definition of done
-- `agent_command`: your non-interactive coding-agent command
-
-The command template supports these placeholders:
-
-- `{prompt_file}`: generated Markdown prompt for the current iteration
-- `{run_dir}`: audit directory for the entire run
-- `{iteration}`: current iteration number
-
-Example:
-
-```toml
-[loop]
-name = "fix-order-total"
-project_dir = "../my-project"
-task = """
-Correct the order-total calculation so discounts are applied before tax.
-Add regression tests for percentage and fixed-value discounts.
-"""
-acceptance_criteria = [
-  "Discounts are applied before tax.",
-  "Existing order calculations remain compatible.",
-  "Regression tests cover percentage and fixed-value discounts.",
-  "All configured verification commands pass.",
-]
-max_iterations = 4
-max_elapsed_seconds = 1200
-agent_timeout_seconds = 600
-agent_command = "your-agent --prompt-file \"{prompt_file}\""
-
-[[verify]]
-name = "tests"
-command = "python -m pytest -q"
-timeout_seconds = 180
-
-[[verify]]
-name = "type-check"
-command = "python -m mypy src"
-timeout_seconds = 180
+```powershell
+py -3.14 -m pip install -e .
 ```
 
-## Run it
+Confirm the installation:
 
-```bash
-agent-loop path/to/loop.toml --allow-agent
+```powershell
+agent-loop --help
 ```
 
-`--allow-agent` is deliberately required because the configured command may edit files and invoke tools.
+You may now run `agent-loop` from any folder on your computer.
 
-A successful run exits with code `0`. A failed or bounded run exits with code `1`. Configuration or permission errors exit with code `2`.
+### 6. Start the guided setup
 
-## Audit trail
+Run:
 
-Each run creates a timestamped directory under `.agent-loop/runs/` containing:
+```powershell
+agent-loop start
+```
+
+The tool will walk you through five steps:
+
+1. choose Claude Code or Codex
+2. approve one version-check command
+3. enter the full path to the separate coding project the AI may modify
+4. describe one coding task and what success looks like
+5. review the detected verification checks and approve the final setup
+
+The tool does not search your computer for an AI agent. You choose the agent, and it asks permission before running that agent's version command.
+
+### 7. Review before anything runs
+
+The tool shows a final summary containing:
+
+- the AI coding agent
+- the exact project folder it may modify
+- the task
+- the success condition
+- the verification commands
+- the retry limit
+
+You must type `CREATE` to save the loop and then type `RUN` before the AI agent starts editing files.
+
+### 8. Read the result
+
+At the end, the terminal tells you:
+
+- whether the checks passed
+- why the loop stopped
+- how many attempts were used
+- where the detailed audit record was saved
+
+Every run is recorded under `.agent-loop/runs/`.
+
+## What the loop does during a run
+
+The loop follows this process:
 
 ```text
-config.snapshot.json
-iteration-01/
-  prompt.md
-  agent.json
-  verification.json
-iteration-02/
-  ...
-outcome.json
+clear task -> AI agent makes changes -> independent checks run -> retry or stop
 ```
 
-This makes the loop inspectable. You can see what the agent received, what it returned, which checks failed, why another iteration occurred, and why the loop stopped.
+The AI agent does not get to declare its own work complete. The configured tests, build, lint, type-check, compile, or Git checks determine whether the loop passes.
 
-## How to use this effectively
+## Safety rules
 
-The quality of a loop is dominated by the quality of its verification. Start by asking: **What evidence would convince a careful human that this task is actually complete?**
+Use a Git repository and commit or back up important work before running the loop. The selected AI coding agent may edit files and execute coding tools inside the project folder you approve.
 
-Good coding-loop evidence usually combines several layers:
+The guided setup refuses to continue when:
 
-- focused tests for the requested behavior
-- the existing test suite for regressions
-- a build or compilation check
-- static analysis such as linting or type checking
-- security or policy checks when the task changes sensitive behavior
+- the selected coding agent cannot be confirmed
+- the chosen project folder does not exist
+- the project is not a Git repository
+- no trustworthy verification command can be found
 
-Do not use an agent-generated confidence score as the primary verifier. Model judgment can supplement evidence, but it should not replace observable checks when observable checks exist.
+## Important clarification
 
-See [How to Build an Effective Loop](docs/building-effective-loops.md) for a reusable design method and [Examples](docs/examples.md) for practical configurations.
+A loop is not effective on its own. It becomes effective only when its goal, tools, evidence, acceptance criteria, limits, and human controls match the task.
 
-## Safety model
+This project focuses on coding because software work often has objective evidence: tests, builds, linters, type checks, and observable file changes.
 
-This project assumes the configured coding agent can modify the target directory. Run it in a Git repository, review changes before committing, restrict the agent's permissions, and avoid exposing production credentials.
+## Advanced use
 
-The harness enforces iteration and elapsed-time limits. It does not sandbox arbitrary commands. Sandboxing belongs at the environment level, using containers, restricted accounts, disposable worktrees, or another isolation mechanism appropriate to your risk.
+The guided setup creates `.agent-loop/quick-start.toml` inside the selected coding project. Experienced users can edit that file or create their own configuration.
 
-## Current scope
+Run an existing configuration with:
 
-Version `0.1.0` intentionally focuses on one reliable pattern:
+```powershell
+agent-loop run path\to\loop.toml --allow-agent
+```
 
-- one coding agent
-- one task
-- deterministic command-based verification
-- bounded repair attempts
-- an inspectable record
-
-It does not pretend that multiple agents, model voting, or elaborate orchestration automatically improve results. Those features should be added only when evaluation shows that they solve a real failure mode.
-
-## Contributing
-
-Contributions are welcome when they preserve the central principle: the loop should stop because evidence satisfies explicit criteria, not because the agent says the work looks complete.
+See [How to Build an Effective Loop](docs/building-effective-loops.md) and [Examples](docs/examples.md).
 
 ## License
 

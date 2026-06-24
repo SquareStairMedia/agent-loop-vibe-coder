@@ -3,9 +3,9 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "verifiable-agent-loop"
-version = "0.1.0"
-description = "A practical coding-agent loop with deterministic verification, bounded retries, and complete audit trails."
+name = "agent-loop-vibe-coder"
+version = "0.3.0"
+description = "A beginner-friendly coding-agent loop with guided setup, deterministic verification, and bounded retries."
 readme = "README.md"
 requires-python = ">=3.11"
 license = {text = "MIT"}
